@@ -9,11 +9,10 @@ from style_gram_metric import style_gram_metric
 
 def calculate_metrics(gen_images, real_images, ref_images, style, mean_matrix):  # 0-255  # 0-255  # 0-255
 
-    # Carica il modello InceptionV3 pre-addestrato e rimuovi l'ultimo strato completamente connesso (output layer)
+    # Load the pre-trained InceptionV3 model and remove the last fully connected layer (output layer)
     inception_model = InceptionV3(weights="imagenet", include_top=False, pooling='avg', input_shape=(256, 256, 3))
 
-    # InceptionV3 richiede che le immagini siano nel formato RGB con valori compresi tra -1 e 1 quindi le immagini vanno preprocessate
-    # La funzione di preprocessing richiede che le immagini siano nel range 0-255
+    # InceptionV3 requires images to be in the RGB format with values between -1 and 1 so images must be preprocessed
     preproc_gen_images = preprocess_input(np.array(gen_images))
     preproc_real_images = preprocess_input(np.array(real_images))
     preproc_ref_images = preprocess_input(np.array(ref_images))
@@ -22,6 +21,7 @@ def calculate_metrics(gen_images, real_images, ref_images, style, mean_matrix): 
     fid_PG, fid_NG = calculate_fid(preproc_gen_images, preproc_real_images, preproc_ref_images, model=inception_model)
     psnr_value = calculate_psnr(real_images, gen_images)
     ssi_value = calculate_ssi(real_images, gen_images)
+
     if style:
         style_metric = style_gram_metric(gen_images, mean_matrix)
     else:

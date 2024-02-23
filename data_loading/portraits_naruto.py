@@ -3,7 +3,7 @@ import os
 import tensorflow_datasets as tfds
 
 
-"""Salvataggio del dataset su tensorflow"""
+# Saving the dataset to tensorflow
 class PortraitsNarutoConfig(tfds.core.BuilderConfig):
     def __init__(self, *, split=None, **kwargs):
         super(PortraitsNarutoConfig, self).__init__(**kwargs)

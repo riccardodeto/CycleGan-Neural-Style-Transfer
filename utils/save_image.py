@@ -9,8 +9,6 @@ def save_image(prediction_image, epoch, suffix, save_folder, verbose=False):
     # Save the prediction image
     filename = f"predizione_epoca_{epoch}_{suffix}.png"
     save_path = os.path.join(save_folder, filename)
-
-    # Save the image using matplotlib
     plt.imsave(save_path, prediction_image.numpy())
 
     if verbose:

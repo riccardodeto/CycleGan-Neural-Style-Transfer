@@ -9,6 +9,7 @@ def save_metrics(epoch=-1, metrics=None, verbose=False, path=None):
 
     # Open a file to save loss values in append mode
     metrics_file = open(path, 'a')
+
     # Save the loss values to the file
     metrics_file.write(string)
     metrics_file.close()

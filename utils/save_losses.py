@@ -13,6 +13,7 @@ def save_losses(epoch=-1, losses=None, verbose=False, path=None):
 
     # Open a file to save loss values in append mode
     loss_file = open(path, 'a')
+
     # Save the loss values to the file
     loss_file.write(string)
     loss_file.close()
