@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 LAMBDA = 10
-# Inizializzo la funzione di loss
+# Initializing the loss function
 loss_BCE = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def discriminator_loss(real, generated):

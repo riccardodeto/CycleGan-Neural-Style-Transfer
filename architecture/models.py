@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, ReLU, Concatenate, Multiply
-from normalizations import InstanceNormalization, AdaINNormalization
+from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, ReLU, Multiply
+from normalizations import InstanceNormalization
 
 def attention_block(x, g, inter_channel):
     theta_x = Conv2D(inter_channel, (1, 1), strides=(1, 1), padding='same')(x)
@@ -12,11 +12,14 @@ def attention_block(x, g, inter_channel):
 
     return Multiply()([x, f])
 
-def downsample(filters, size, norm_type='batchnorm', apply_norm=True):
+def downsample(filters, size,  norm_type='batchnorm', apply_norm=True, strides=2, activation='relu'):
+    # Random initialization of weights
     initializer = tf.random_normal_initializer(0., 0.02)
+
+    # Initialization of a sequential model, which will contain the downsampling block layers
     result = tf.keras.Sequential()
     result.add(
-        tf.keras.layers.Conv2D(filters, size, strides=2, padding='same',
+        tf.keras.layers.Conv2D(filters, size, strides=strides, padding='same',
                                kernel_initializer=initializer, use_bias=False))
 
     if apply_norm:
@@ -24,10 +27,11 @@ def downsample(filters, size, norm_type='batchnorm', apply_norm=True):
             result.add(BatchNormalization())
         elif norm_type.lower() == 'instancenorm':
             result.add(InstanceNormalization())
-        elif norm_type.lower() == 'adain_norm':
-            result.add(AdaINNormalization())
 
-    result.add(ReLU())
+    if activation.lower() == 'relu':
+        result.add(ReLU())
+    elif activation.lower() == 'leakyrelu':
+        result.add(tf.keras.layers.LeakyReLU())
 
     return result
 
@@ -44,8 +48,7 @@ def upsample(filters, size, norm_type='batchnorm', apply_dropout=False):
         result.add(BatchNormalization())
     elif norm_type.lower() == 'instancenorm':
         result.add(InstanceNormalization())
-    elif norm_type.lower() == 'adain_norm':
-        result.add(AdaINNormalization())
+
 
     if apply_dropout:
         result.add(tf.keras.layers.Dropout(0.5))
@@ -82,8 +85,6 @@ def unet_generator_with_attention(output_channels, norm_type='batchnorm', attent
         padding='same', kernel_initializer=initializer,
         activation='tanh')
 
-    concat = Concatenate()
-
     inputs = Input(shape=[None, None, 3])
     x = inputs
 
@@ -103,7 +104,9 @@ def unet_generator_with_attention(output_channels, norm_type='batchnorm', attent
 
     return tf.keras.Model(inputs=inputs, outputs=x)
 
-def discriminator(norm_type='batchnorm'):
+
+
+def discriminator(norm_type='batch_norm'):
     initializer = tf.random_normal_initializer(0., 0.02)
 
     inp = tf.keras.layers.Input(shape=[None, None, 3], name='input_image')
@@ -114,18 +117,10 @@ def discriminator(norm_type='batchnorm'):
     down3 = downsample(256, 4, norm_type)(down2)  # (bs, 32, 32, 256)
 
     zero_pad1 = tf.keras.layers.ZeroPadding2D()(down3)  # (bs, 34, 34, 256)
-    conv = tf.keras.layers.Conv2D(
-        512, 4, strides=1, kernel_initializer=initializer,
-        use_bias=False)(zero_pad1)  # (bs, 31, 31, 512)
 
-    if norm_type.lower() == 'batchnorm':
-        norm1 = tf.keras.layers.BatchNormalization()(conv)
-    elif norm_type.lower() == 'instancenorm':
-        norm1 = InstanceNormalization()(conv)
+    down4 = downsample(512,4, norm_type, strides=1, activation='leakyrelu')(zero_pad1) # (bs, 31, 31, 512)
 
-    leaky_relu = tf.keras.layers.LeakyReLU()(norm1)
-
-    zero_pad2 = tf.keras.layers.ZeroPadding2D()(leaky_relu)  # (bs, 33, 33, 512)
+    zero_pad2 = tf.keras.layers.ZeroPadding2D()(down4)  # (bs, 33, 33, 512)
 
     last = tf.keras.layers.Conv2D(
         1, 4, strides=1,
